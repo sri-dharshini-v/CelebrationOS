@@ -26,12 +26,6 @@ const rootDir = path.resolve(__dirname, '..');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware for parsing JSON bodies
-app.use(express.json());
-
-// Serve static frontend assets from public/ folder
-app.use(express.static(path.join(rootDir, 'public')));
-
 // Minimal Server Health-Check Endpoint
 app.get('/api/health', (req, res) => {
   const isKeyConfigured = Boolean(
@@ -48,6 +42,12 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Parse request bodies for the public demo API.
+app.use(express.json());
+
+// Serve the public demo frontend.
+app.use(express.static(path.join(rootDir, 'public')));
 
 // Deterministic Plan Validation Endpoint
 app.post('/api/plan/validate', (req, res) => {

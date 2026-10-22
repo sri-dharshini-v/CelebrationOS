@@ -62,7 +62,11 @@ async function runTests() {
     [path.join(rootDir, 'server', 'server.js')],
     {
       cwd: rootDir,
-      env: { ...process.env, PORT: String(port), GEMINI_API_KEY: '' },
+      env: {
+        ...process.env,
+        PORT: String(port),
+        GEMINI_API_KEY: ''
+      },
       stdio: 'ignore'
     }
   );

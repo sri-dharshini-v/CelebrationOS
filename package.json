@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node server/server.js",
-    "test": "node -e \"const { spawnSync } = require('node:child_process'); for (const file of ['tests/test_history_tracking.js', 'tests/test_step4.js', 'tests/test_safe_undo_ui.js', 'tests/test_history_tracking_endpoint.js']) { console.log('Running ' + file); const result = spawnSync(process.execPath, [file], { stdio: 'inherit' }); if (result.error) { console.error(result.error); process.exit(1); } if (result.status !== 0) process.exit(result.status || 1); }\""
+    "test": "node -e \"const { spawnSync } = require('node:child_process'); for (const file of ['tests/test_basic_auth.js', 'tests/test_history_tracking.js', 'tests/test_step4.js', 'tests/test_safe_undo_ui.js', 'tests/test_history_tracking_endpoint.js']) { console.log('Running ' + file); const result = spawnSync(process.execPath, [file], { stdio: 'inherit' }); if (result.error) { console.error(result.error); process.exit(1); } if (result.status !== 0) process.exit(result.status || 1); }\""
   },
   "keywords": [
     "celebration",

@@ -3,17 +3,72 @@
  * Persistence, Version History & Safe Undo with Conflict Detection
  */
 
+import { spawn } from 'node:child_process';
+import net from 'node:net';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { listPlans, getPlan, saveNewPlan, updatePlan, deletePlan } from '../server/storage.js';
 import { executeSafeUndo } from '../server/historyEngine.js';
 import { MOCK_EVENT_PLANS } from '../server/schemas.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
+
 function assert(condition, message) {
   if (!condition) {
     console.error(`❌ FAILED: ${message}`);
-    process.exit(1);
+    throw new Error(`FAILED: ${message}`);
   } else {
     console.log(`✅ PASSED: ${message}`);
   }
+}
+
+async function getAvailablePort() {
+  const server = net.createServer();
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const { port } = server.address();
+  await new Promise((resolve, reject) => {
+    server.close(error => error ? reject(error) : resolve());
+  });
+  return port;
+}
+
+async function waitForServer(baseUrl, child) {
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) {
+      throw new Error(`Server exited before becoming ready (code ${child.exitCode}).`);
+    }
+    try {
+      const response = await fetch(`${baseUrl}/api/health`);
+      if (response.ok) return;
+    } catch {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  throw new Error('Timed out waiting for the test server to start.');
+}
+
+async function stopServer(child) {
+  if (!child || child.exitCode !== null) return;
+
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Timed out waiting for the Step 4 test server to stop.'));
+    }, 5000);
+    child.once('exit', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+    if (!child.kill()) {
+      clearTimeout(timeout);
+      resolve();
+    }
+  });
 }
 
 console.log('==========================================================');
@@ -21,11 +76,29 @@ console.log('🧪 Running Step 4 Persistence, History & Safe Undo Tests');
 console.log('==========================================================\n');
 
 let planId;
-process.on('exit', () => {
-  if (planId) deletePlan(planId);
-});
+let server;
 
 async function runTests() {
+  let baseUrl;
+
+  try {
+    const port = await getAvailablePort();
+    baseUrl = `http://127.0.0.1:${port}`;
+    server = spawn(
+      process.execPath,
+      [path.join(rootDir, 'server', 'server.js')],
+      {
+        cwd: rootDir,
+        env: {
+          ...process.env,
+          PORT: String(port),
+          GEMINI_API_KEY: ''
+        },
+        stdio: 'ignore'
+      }
+    );
+    await waitForServer(baseUrl, server);
+
   // -----------------------------------------------------------------
   // 1. Save New Plan (Revision 1)
   // -----------------------------------------------------------------
@@ -149,13 +222,13 @@ async function runTests() {
   console.log('\n--- 5. Testing REST API Endpoints over HTTP ---');
   
   // GET /api/plans
-  const httpListRes = await fetch('http://localhost:3000/api/plans');
+  const httpListRes = await fetch(`${baseUrl}/api/plans`);
   const httpListData = await httpListRes.json();
   assert(httpListData.success === true, 'GET /api/plans returned success');
   assert(Array.isArray(httpListData.plans), 'GET /api/plans returned an array of plans');
 
   // GET /api/plans/:id
-  const httpGetRes = await fetch(`http://localhost:3000/api/plans/${planId}`);
+  const httpGetRes = await fetch(`${baseUrl}/api/plans/${planId}`);
   const httpGetData = await httpGetRes.json();
   assert(httpGetData.success === true, 'GET /api/plans/:id returned success');
   assert(httpGetData.doc.currentRevision === 3, 'GET /api/plans/:id reflects current revision 3');
@@ -166,14 +239,18 @@ async function runTests() {
   // -----------------------------------------------------------------
   console.log('\n--- 6. Cleanup Test Plan ---');
   const deleteResult = deletePlan(planId);
-  assert(deleteResult === true, 'Test plan deleted successfully');
   assert(getPlan(planId) === null, 'Verified test plan no longer exists on disk');
+  assert(deleteResult === true, 'Test plan deleted successfully');
   planId = undefined;
 
   console.log('\n🎉 ALL STEP 4 PERSISTENCE & SAFE UNDO TESTS PASSED WITH 100% SUCCESS!\n');
+  } finally {
+    if (planId) deletePlan(planId);
+    await stopServer(server);
+  }
 }
 
 runTests().catch(err => {
   console.error('Fatal error during Step 4 tests:', err);
-  process.exit(1);
+  process.exitCode = 1;
 });
