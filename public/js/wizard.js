@@ -198,9 +198,9 @@ export class WizardController {
     const reviewBox = document.getElementById('guided-review-summary');
     if (reviewBox) {
       reviewBox.innerHTML = `
-        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 16px;">
-          <h4 style="color: var(--accent-gold); font-size: 16px; margin-bottom: 8px;">${escapeHtml(title)}</h4>
-          <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">
+        <div class="guided-review-card">
+          <h4 class="guided-review-title">${escapeHtml(title)}</h4>
+          <p class="guided-review-copy">
             <strong>Type:</strong> ${escapeHtml(type.toUpperCase())} | <strong>Date:</strong> ${escapeHtml(date)} | <strong>Location:</strong> ${escapeHtml(loc || 'Not specified')}<br>
             <strong>Scale:</strong> ${escapeHtml(guests)} Guests | <strong>Budget:</strong> ${escapeHtml(budget)} ${escapeHtml(currency)}<br>
             <strong>Theme:</strong> ${escapeHtml(theme)}<br>
@@ -431,10 +431,10 @@ export class WizardController {
     banner.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
         <div>
-          <span class="badge-pill" style="background: rgba(63, 185, 80, 0.2); border-color: #2ea043; color: #3fb950; font-size: 13px;">
+          <span class="badge-pill plan-success-badge">
             ✓ ${i18n.t('plan_ready_badge', 'Plan Generated Successfully!')} (Revision ${escapeHtml(doc.currentRevision)})
           </span>
-          <h3 style="font-size: 22px; color: #fff; margin-top: 8px;">${escapeHtml(plan.eventDetails.title)}</h3>
+          <h3 class="plan-success-title">${escapeHtml(plan.eventDetails.title)}</h3>
           <p style="color: var(--text-muted); font-size: 13px;">
             ${escapeHtml(plan.eventDetails.eventType.toUpperCase())} • ${escapeHtml(plan.eventDetails.date)} • ${escapeHtml(plan.eventDetails.location)}
           </p>
@@ -448,17 +448,17 @@ export class WizardController {
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 16px;">
-        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: var(--radius-sm); border-left: 3px solid #3a86ff;">
+        <div class="plan-success-stat plan-success-budget">
           <div style="font-size: 11px; color: var(--text-dim);">BUDGET CATEGORIES</div>
-          <div style="font-size: 16px; font-weight: 700; color: #fff;">${catCount} Allocated</div>
+          <div class="plan-success-stat-value">${catCount} Allocated</div>
         </div>
-        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: var(--radius-sm); border-left: 3px solid #fb8500;">
+        <div class="plan-success-stat plan-success-tasks">
           <div style="font-size: 11px; color: var(--text-dim);">TASKS & MILESTONES</div>
-          <div style="font-size: 16px; font-weight: 700; color: #fff;">${taskCount} Scheduled</div>
+          <div class="plan-success-stat-value">${taskCount} Scheduled</div>
         </div>
-        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: var(--radius-sm); border-left: 3px solid #ffb703;">
+        <div class="plan-success-stat plan-success-rituals">
           <div style="font-size: 11px; color: var(--text-dim);">PROTECTED TRADITIONS</div>
-          <div style="font-size: 16px; font-weight: 700; color: #fff;">${ritualCount} Safeguarded</div>
+          <div class="plan-success-stat-value">${ritualCount} Safeguarded</div>
         </div>
       </div>
 

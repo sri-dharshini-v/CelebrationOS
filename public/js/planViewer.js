@@ -6,10 +6,24 @@
 import { i18n } from './i18n.js';
 import { escapeHtml } from './html.js';
 
-const CATEGORY_COLORS = [
-  '#ffb703', '#fb8500', '#ff007f', '#8338ec',
-  '#3a86ff', '#3fb950', '#06d6a0', '#e76f51'
+const CATEGORY_COLOR_TOKENS = [
+  '--chart-color-1', '--chart-color-2', '--chart-color-3', '--chart-color-4',
+  '--chart-color-5', '--chart-color-6', '--chart-color-7', '--chart-color-8'
 ];
+const FALLBACK_CATEGORY_COLORS = [
+  '#c99a4a', '#d87983', '#bd6686', '#92749a',
+  '#668f96', '#4d8068', '#bd8d70', '#92747c'
+];
+
+function getCategoryColor(index) {
+  if (typeof getComputedStyle !== 'function' || !document.documentElement) {
+    return FALLBACK_CATEGORY_COLORS[index % FALLBACK_CATEGORY_COLORS.length];
+  }
+
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(CATEGORY_COLOR_TOKENS[index % CATEGORY_COLOR_TOKENS.length])
+    .trim() || FALLBACK_CATEGORY_COLORS[index % FALLBACK_CATEGORY_COLORS.length];
+}
 
 export class PlanViewer {
   constructor() {
@@ -43,7 +57,7 @@ export class PlanViewer {
               <span class="badge-pill">Revision ${escapeHtml(doc.currentRevision ?? '—')}</span>
               <span class="badge-pill">Language: ${escapeHtml(details.language || '—')}</span>
             </div>
-            <h2 style="font-size:28px;color:#fff;font-family:var(--font-display);">
+            <h2 style="font-size:28px;color:var(--text-main);font-family:var(--font-display);">
               ${escapeHtml(details.title || 'Event Plan')}
             </h2>
             <p style="color:var(--text-muted);font-size:14px;margin-top:4px;">
@@ -110,7 +124,7 @@ export class PlanViewer {
     return `
       <section class="glass-card" id="saved-plan-editor" hidden
         style="padding:20px;margin-bottom:24px;">
-        <h3 style="font-size:20px;color:#fff;margin-bottom:14px;">Edit Saved Plan</h3>
+        <h3 style="font-size:20px;color:var(--text-main);margin-bottom:14px;">Edit Saved Plan</h3>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
           <label>Event title
             <input class="input-styled" data-plan-field="title" type="text" required
@@ -145,7 +159,7 @@ export class PlanViewer {
           </label>
         </div>
 
-        <h4 style="font-size:16px;color:#fff;margin:18px 0 8px;">Budget allocations</h4>
+        <h4 style="font-size:16px;color:var(--text-main);margin:18px 0 8px;">Budget allocations</h4>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
           ${categories.map((category, index) => `
             <label>${escapeHtml(category.name)}
@@ -173,7 +187,7 @@ export class PlanViewer {
       <section class="glass-card" id="shock-engine-panel"
         ${this.shockPanelOpen ? '' : 'hidden'}
         style="padding:20px;margin-bottom:24px;">
-        <h3 style="font-size:20px;color:#fff;margin-bottom:8px;">Shock Engine</h3>
+        <h3 style="font-size:20px;color:var(--text-main);margin-bottom:8px;">Shock Engine</h3>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
           Apply a budget change, shift the event date, or do both. Paid/frozen commitments,
           completed tasks, and protected rituals remain protected. Relative task deadlines
@@ -277,7 +291,7 @@ export class PlanViewer {
             style="margin-top:4px;"
           >
           <label for="history-revision-${entry.revision}" style="flex:1;">
-            <strong style="color:#fff;">Revision ${entry.revision}</strong>
+            <strong style="color:var(--text-main);">Revision ${entry.revision}</strong>
             ${isCurrent ? '<span class="badge-pill">Current revision</span>' : ''}
             <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
               ${escapeHtml(description)}
@@ -298,7 +312,7 @@ export class PlanViewer {
     return `
       <section class="glass-card" id="history-management-panel"
         style="padding:20px;margin-bottom:24px;">
-        <h3 style="font-size:20px;color:#fff;margin-bottom:8px;">
+        <h3 style="font-size:20px;color:var(--text-main);margin-bottom:8px;">
           🕘 Version History
         </h3>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
@@ -877,7 +891,7 @@ export class PlanViewer {
     const safeTotal = Number(totalBudget) || 0;
 
     const meterSegments = categories.map((cat, idx) => {
-      const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+      const color = getCategoryColor(idx);
       const pct = Number(
         cat.percentage ??
         (safeTotal ? (Number(cat.allocatedAmount || 0) / safeTotal) * 100 : 0)
@@ -891,7 +905,7 @@ export class PlanViewer {
     }).join('');
 
     const categoryCards = categories.map((cat, idx) => {
-      const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+      const color = getCategoryColor(idx);
 
       const itemsHtml = (cat.items || []).map(item => {
         const isPaid = item.status === 'paid' || item.isFrozen;
@@ -903,13 +917,13 @@ export class PlanViewer {
           : `<span class="badge-pill">${i18n.t('status_pending', 'Pending')}</span>`;
 
         return `
-          <div class="budget-item-row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+          <div class="budget-item-row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-glass);">
             <div style="flex:1;">
-              <div style="font-size:14px;font-weight:600;color:#fff;">${escapeHtml(item.name || '')}</div>
+              <div style="font-size:14px;font-weight:600;color:var(--text-main);">${escapeHtml(item.name || '')}</div>
               ${item.notes ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${escapeHtml(item.notes)}</div>` : ''}
             </div>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-              <span style="font-size:14px;font-weight:700;color:#fff;">
+              <span style="font-size:14px;font-weight:700;color:var(--text-main);">
                 ${Number(item.estimatedCost || 0).toLocaleString()} ${escapeHtml(currency || '')}
               </span>
               ${statusBadge}
@@ -927,7 +941,7 @@ export class PlanViewer {
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;">
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="width:10px;height:10px;border-radius:50%;background:${color};"></span>
-              <h4 style="font-size:16px;color:#fff;">${escapeHtml(cat.name || '')}</h4>
+              <h4 style="font-size:16px;color:var(--text-main);">${escapeHtml(cat.name || '')}</h4>
             </div>
             <div style="text-align:right;">
               <span style="font-size:16px;font-weight:700;color:var(--accent-gold);">
@@ -944,7 +958,7 @@ export class PlanViewer {
 
     return `
       <div style="margin-bottom:32px;">
-        <h3 style="font-size:20px;color:#fff;margin-bottom:14px;">
+        <h3 style="font-size:20px;color:var(--text-main);margin-bottom:14px;">
           💰 ${i18n.t('budget_title', 'Structured Budget Allocation')}
         </h3>
 
@@ -953,7 +967,7 @@ export class PlanViewer {
             <span>Category Distribution</span>
             <span>${safeTotal.toLocaleString()} ${escapeHtml(currency || '')}</span>
           </div>
-          <div class="budget-meter-track" style="height:14px;display:flex;border-radius:var(--radius-full);overflow:hidden;background:rgba(255,255,255,0.05);gap:2px;">
+          <div class="budget-meter-track" style="height:14px;display:flex;border-radius:var(--radius-full);overflow:hidden;background:var(--surface-soft);gap:2px;">
             ${meterSegments}
           </div>
         </div>
@@ -996,7 +1010,7 @@ export class PlanViewer {
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;">
             <div style="display:flex;align-items:center;gap:10px;">
               <span class="step-circle">${escapeHtml(m.order || 1)}</span>
-              <h4 style="font-size:16px;color:#fff;">${escapeHtml(m.title || '')}</h4>
+              <h4 style="font-size:16px;color:var(--text-main);">${escapeHtml(m.title || '')}</h4>
             </div>
             <span class="badge-pill">${escapeHtml(m.timeframe || '')}</span>
           </div>
@@ -1007,7 +1021,7 @@ export class PlanViewer {
     return `
       <div style="margin-bottom:32px;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-          <h3 style="font-size:20px;color:#fff;">
+          <h3 style="font-size:20px;color:var(--text-main);">
             📅 ${i18n.t('timeline_title', 'Personalized Milestone Timeline & Tasks')}
           </h3>
           <div style="display:flex;gap:6px;">
@@ -1024,7 +1038,7 @@ export class PlanViewer {
     if (!rituals?.length) return '';
 
     const ritualCards = rituals.map(r => `
-      <div class="glass-card ritual-guard-card" style="border:1px solid rgba(255,183,3,0.4);background:rgba(255,183,3,0.04);padding:20px;margin-bottom:14px;">
+      <div class="glass-card ritual-guard-card" style="border:1px solid color-mix(in srgb, var(--accent-gold) 45%, transparent);background:color-mix(in srgb, var(--accent-gold) 5%, var(--bg-card));padding:20px;margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;">
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:20px;">🛡️</span>
@@ -1032,17 +1046,17 @@ export class PlanViewer {
           </div>
           <span class="badge-pill">${i18n.t('ritual_protected_badge', 'Protected Traditional Ritual')}</span>
         </div>
-        <p style="color:#e6edf3;font-size:13px;line-height:1.5;margin-bottom:8px;">
+        <p style="color:var(--text-main);font-size:13px;line-height:1.5;margin-bottom:8px;">
           ${escapeHtml(r.significance || '')}
         </p>
         ${r.estimatedDuration ? `<div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">⏱️ Duration: ${escapeHtml(r.estimatedDuration)}</div>` : ''}
-        ${r.preservationNotes ? `<div style="font-size:12px;color:#a5d6ff;margin-bottom:6px;">📜 ${escapeHtml(r.preservationNotes)}</div>` : ''}
-        ${r.alternativesIfBudgetConstrained ? `<div style="font-size:12px;color:#ffd166;padding:8px 12px;margin-top:8px;">💡 Budget Adaptation: ${escapeHtml(r.alternativesIfBudgetConstrained)}</div>` : ''}
+        ${r.preservationNotes ? `<div style="font-size:12px;color:var(--accent-cyan);margin-bottom:6px;">📜 ${escapeHtml(r.preservationNotes)}</div>` : ''}
+        ${r.alternativesIfBudgetConstrained ? `<div style="font-size:12px;color:var(--accent-gold);padding:8px 12px;margin-top:8px;">💡 Budget Adaptation: ${escapeHtml(r.alternativesIfBudgetConstrained)}</div>` : ''}
       </div>`).join('');
 
     return `
       <div style="margin-bottom:32px;">
-        <h3 style="font-size:20px;color:#fff;margin-bottom:14px;">
+        <h3 style="font-size:20px;color:var(--text-main);margin-bottom:14px;">
           🛡️ ${i18n.t('nav_rituals', 'Protected Traditions')}
         </h3>
         <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
@@ -1059,7 +1073,7 @@ export class PlanViewer {
 
    const venuesHtml = (recs.venues || []).map(v => `
   <div class="glass-card recommendation-card" style="padding:16px;margin-bottom:12px;">
-    <h4 style="font-size:15px;color:#fff;margin-bottom:6px;">${escapeHtml(v.name || '')}</h4>
+    <h4 style="font-size:15px;color:var(--text-main);margin-bottom:6px;">${escapeHtml(v.name || '')}</h4>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">
       ${escapeHtml(v.location || '')}
     </div>
@@ -1070,7 +1084,7 @@ export class PlanViewer {
 
     const vendorsHtml = (recs.vendors || []).map(v => `
       <div class="glass-card recommendation-card" style="padding:16px;margin-bottom:12px;">
-        <h4 style="font-size:15px;color:#fff;margin-bottom:6px;">${escapeHtml(v.name || '')}</h4>
+        <h4 style="font-size:15px;color:var(--text-main);margin-bottom:6px;">${escapeHtml(v.name || '')}</h4>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">
           ${escapeHtml(v.serviceType || '')} • ${escapeHtml(v.location || '')}
         </div>
@@ -1081,19 +1095,19 @@ export class PlanViewer {
 
     return `
       <div style="margin-bottom:32px;">
-        <h3 style="font-size:20px;color:#fff;margin-bottom:14px;">
+        <h3 style="font-size:20px;color:var(--text-main);margin-bottom:14px;">
           💡 ${i18n.t('nav_recommendations', 'Recommendations')}
         </h3>
 
         ${venuesHtml ? `
-          <h4 style="font-size:16px;color:#fff;margin-bottom:8px;">${i18n.t('recommendation_venues', 'Recommended Venues')}</h4>
+          <h4 style="font-size:16px;color:var(--text-main);margin-bottom:8px;">${i18n.t('recommendation_venues', 'Recommended Venues')}</h4>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:20px;">
             ${venuesHtml}
           </div>
         ` : ''}
 
         ${vendorsHtml ? `
-          <h4 style="font-size:16px;color:#fff;margin-bottom:8px;">${i18n.t('recommendation_vendors', 'Recommended Vendors')}</h4>
+          <h4 style="font-size:16px;color:var(--text-main);margin-bottom:8px;">${i18n.t('recommendation_vendors', 'Recommended Vendors')}</h4>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">
             ${vendorsHtml}
           </div>

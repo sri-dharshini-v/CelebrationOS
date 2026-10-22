@@ -7,8 +7,11 @@ import { i18n } from './i18n.js';
 import { wizard } from './wizard.js';
 import { plansManager } from './plansManager.js';
 import { escapeHtml } from './html.js';
+import { themeController } from './theme.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  themeController.init();
+
   // 1. Initialize i18n
   const state = await i18n.init();
   console.log('🎉 CelebrationOS i18n initialized:', state);

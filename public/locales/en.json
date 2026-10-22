@@ -90,5 +90,12 @@
   "status_booked": "Booked",
   "status_pending": "Pending",
   "ritual_protected_badge": "Protected Traditional Ritual",
-  "questions_to_ask": "Key Vendor Questions:"
+  "questions_to_ask": "Key Vendor Questions:",
+  "theme_label": "Appearance",
+  "theme_desc": "Choose a celebration palette. Your choice is saved on this device.",
+  "theme_elegant": "Elegant",
+  "theme_joyful": "Joyful",
+  "theme_modern": "Modern",
+  "theme_accent_label": "Custom accent color",
+  "theme_accent_desc": "Personalize the highlights while keeping the selected palette."
 }

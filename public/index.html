@@ -44,6 +44,26 @@
     
     <!-- Hero Card with Multilingual Demonstration -->
     <div class="glass-card hero-card">
+      <div class="hero-decorations" aria-hidden="true">
+        <span class="floating-decoration decoration-heart decoration-one">♡</span>
+        <span class="floating-decoration decoration-sparkle decoration-two">✦</span>
+        <span class="floating-decoration decoration-heart decoration-three">♥</span>
+        <span class="floating-decoration decoration-sparkle decoration-four">✧</span>
+        <span class="floating-decoration decoration-heart decoration-five">♡</span>
+        <span class="floating-decoration decoration-sparkle decoration-six">✧</span>
+        <span class="floating-decoration decoration-heart decoration-seven">♥</span>
+        <span class="floating-decoration decoration-sparkle decoration-eight">✦</span>
+        <span class="floating-decoration decoration-heart decoration-nine">♡</span>
+        <span class="floating-decoration decoration-sparkle decoration-ten">✦</span>
+        <span class="event-decoration wedding-petal petal-one">✿</span>
+        <span class="event-decoration wedding-petal petal-two">❀</span>
+        <span class="event-decoration wedding-petal petal-three">✿</span>
+        <span class="event-decoration wedding-petal petal-four">❀</span>
+        <span class="event-decoration wedding-petal petal-five">✿</span>
+        <span class="event-decoration birthday-balloon balloon-one">🎈</span>
+        <span class="event-decoration birthday-balloon balloon-two">🎈</span>
+        <span class="event-decoration birthday-balloon balloon-three">🎈</span>
+      </div>
       <h2 data-i18n="welcome_title">Welcome to CelebrationOS</h2>
       <p class="hero-subtitle" data-i18n="welcome_desc">
         Plan weddings, birthdays, and community gatherings effortlessly with intelligent budgeting and timeline management.
@@ -55,7 +75,7 @@
           <span class="status-tag" data-i18n="step2_status_badge">Step 2 Active: Multilingual Engine</span>
           <span class="badge-pill" data-i18n="badge_independent">Independent Controls</span>
         </div>
-        <p style="color: var(--text-muted); font-size: 14px;" data-i18n="step2_desc">
+        <p class="status-description" data-i18n="step2_desc">
           Translations update dynamically in real time without refreshing the page. You can change either language independently.
         </p>
 
@@ -66,8 +86,8 @@
       </div>
 
       <!-- Live Test Switchers -->
-      <div style="margin-top: 28px; text-align: left; background: rgba(255,255,255,0.02); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
-        <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-gold);">⚡ Live Verification Controls</h4>
+      <div class="language-test-controls">
+        <h4 class="language-test-title">⚡ Live Verification Controls</h4>
         
         <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center;">
           <span style="font-size: 13px; color: var(--text-dim); min-width: 140px;">Switch UI Language:</span>
@@ -93,7 +113,7 @@
       <div id="saved-plans-bar" class="saved-plans-bar">
         <div style="display: flex; align-items: center; gap: 10px;">
           <span style="font-size: 18px;">📁</span>
-          <span style="font-size: 13px; font-weight: 700; color: #fff;" data-i18n="saved_plans_label">Saved Plans:</span>
+          <span class="saved-plans-label" data-i18n="saved_plans_label">Saved Plans:</span>
           <span id="saved-plans-count" class="badge-pill" style="font-size: 11px; padding: 2px 8px;">0</span>
         </div>
         <div style="flex: 1; max-width: 620px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
@@ -436,6 +456,26 @@
           <option value="ta">தமிழ் (Tamil)</option>
           <option value="hi">हिन्दी (Hindi)</option>
         </select>
+      </div>
+
+      <div class="form-group theme-settings">
+        <label for="settings-theme-select" data-i18n="theme_label">Appearance</label>
+        <p class="form-hint" data-i18n="theme_desc">Choose a celebration palette. Your choice is saved on this device.</p>
+        <select id="settings-theme-select" class="select-styled">
+          <option value="elegant" data-i18n="theme_elegant">Elegant</option>
+          <option value="joyful" data-i18n="theme_joyful">Joyful</option>
+          <option value="modern" data-i18n="theme_modern">Modern</option>
+        </select>
+      </div>
+
+      <div class="form-group theme-settings">
+        <label for="settings-accent-picker" data-i18n="theme_accent_label">Custom accent color</label>
+        <p class="form-hint" data-i18n="theme_accent_desc">Personalize the highlights while keeping the selected palette.</p>
+        <div class="accent-picker-row">
+          <input id="settings-accent-picker" class="accent-picker" type="color" value="#c99a4a"
+            aria-describedby="settings-accent-value">
+          <span id="settings-accent-value" class="accent-value" role="status" aria-live="polite">#C99A4A</span>
+        </div>
       </div>
 
       <div class="modal-footer">
