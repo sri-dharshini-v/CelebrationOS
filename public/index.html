@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CelebrationOS | Multilingual Event Planner</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-logo">🎉</div>
+      <div class="brand-text">
+        <h1 data-i18n="app_title">CelebrationOS</h1>
+        <p data-i18n="app_tagline">GenAI-Powered Celebration & Event Planner</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Active Language Badges -->
+      <div class="badge-pill ui-badge">
+        <span class="badge-dot"></span>
+        <span id="current-ui-badge">UI: English</span>
+      </div>
+
+      <div class="badge-pill plan-badge">
+        <span class="badge-dot"></span>
+        <span id="current-plan-badge">AI Plan: English</span>
+      </div>
+
+      <!-- Settings Button -->
+      <button id="btn-settings" class="btn-icon" title="Language & Regional Settings">
+        <span>⚙️</span>
+        <span data-i18n="settings_button">Settings</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace Content -->
+  <main class="main-content">
+    
+    <!-- Hero Card with Multilingual Demonstration -->
+    <div class="glass-card hero-card">
+      <h2 data-i18n="welcome_title">Welcome to CelebrationOS</h2>
+      <p class="hero-subtitle" data-i18n="welcome_desc">
+        Plan weddings, birthdays, and community gatherings effortlessly with intelligent budgeting and timeline management.
+      </p>
+
+      <!-- Status Indicator for Step 2 -->
+      <div class="status-box">
+        <div class="status-header">
+          <span class="status-tag" data-i18n="step2_status_badge">Step 2 Active: Multilingual Engine</span>
+          <span class="badge-pill" data-i18n="badge_independent">Independent Controls</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 14px;" data-i18n="step2_desc">
+          Translations update dynamically in real time without refreshing the page. You can change either language independently.
+        </p>
+
+        <!-- Sample preview block rendered in current UI language -->
+        <div class="sample-text-box" data-i18n="test_sample_text">
+          Live Preview: Planning an unforgettable event with family, tradition, and joy.
+        </div>
+      </div>
+
+      <!-- Live Test Switchers -->
+      <div style="margin-top: 28px; text-align: left; background: rgba(255,255,255,0.02); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
+        <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--accent-gold);">⚡ Live Verification Controls</h4>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center;">
+          <span style="font-size: 13px; color: var(--text-dim); min-width: 140px;">Switch UI Language:</span>
+          <button id="test-ui-en" class="btn-secondary" style="padding: 6px 14px; font-size: 13px;">English</button>
+          <button id="test-ui-ta" class="btn-secondary" style="padding: 6px 14px; font-size: 13px;">தமிழ் (Tamil)</button>
+          <button id="test-ui-hi" class="btn-secondary" style="padding: 6px 14px; font-size: 13px;">हिन्दी (Hindi)</button>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+          <span style="font-size: 13px; color: var(--text-dim); min-width: 140px;">Switch AI Plan Language:</span>
+          <button id="test-plan-en" class="btn-icon" style="padding: 6px 14px; font-size: 13px;">Plan in English</button>
+          <button id="test-plan-ta" class="btn-icon" style="padding: 6px 14px; font-size: 13px;">Plan in தமிழ்</button>
+          <button id="test-plan-hi" class="btn-icon" style="padding: 6px 14px; font-size: 13px;">Plan in हिन्दी</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CelebrationOS Event Setup Wizard Container -->
+    <section class="wizard-container">
+
+      <!-- Saved Plans Quick Bar -->
+      <div id="saved-plans-bar" class="saved-plans-bar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 18px;">📁</span>
+          <span style="font-size: 13px; font-weight: 700; color: #fff;" data-i18n="saved_plans_label">Saved Plans:</span>
+          <span id="saved-plans-count" class="badge-pill" style="font-size: 11px; padding: 2px 8px;">0</span>
+        </div>
+        <div style="flex: 1; max-width: 620px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+          <select id="saved-plans-select" class="select-styled" style="flex: 1; min-width: 220px; padding: 8px 12px; font-size: 13px;">
+            <option value="">No saved plans yet</option>
+          </select>
+          <button id="delete-saved-plan" class="btn-secondary" type="button" data-i18n="delete_plan" disabled>Delete Plan</button>
+          <span id="saved-plan-status" role="status" aria-live="polite" style="flex-basis: 100%; font-size: 12px; color: var(--text-muted);"></span>
+        </div>
+      </div>
+
+      <!-- Mode Switcher Tabs -->
+      <div class="wizard-mode-container">
+        <div id="tab-mode-quick" class="mode-tab active">
+          <div class="mode-icon">⚡</div>
+          <div class="mode-info">
+            <h4 data-i18n="wizard_mode_quick">Quick Plan</h4>
+            <p data-i18n="wizard_mode_quick_desc">Fast 30-second setup for essential event details</p>
+          </div>
+        </div>
+
+        <div id="tab-mode-guided" class="mode-tab">
+          <div class="mode-icon">🧭</div>
+          <div class="mode-info">
+            <h4 data-i18n="wizard_mode_guided">Guided Planner</h4>
+            <p data-i18n="wizard_mode_guided_desc">Step-by-step deep dive with cultural traditions and priorities</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation Error Banner -->
+      <div id="wizard-alert-error" class="alert-error"></div>
+
+      <!-- 1. Quick Plan Form Card -->
+      <div id="form-quick-card" class="form-card">
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label for="q-title"><span data-i18n="field_title">Event Title</span> <span class="required">*</span></label>
+            <input type="text" id="q-title" class="input-styled" placeholder="e.g., Ananya & Rahul's Wedding" value="Ananya & Rahul's Wedding">
+          </div>
+
+          <div class="form-field">
+            <label for="q-type"><span data-i18n="field_type">Event Type</span> <span class="required">*</span></label>
+            <select id="q-type" class="select-styled">
+              <option value="wedding" data-i18n="type_wedding">Wedding</option>
+              <option value="birthday" data-i18n="type_birthday">Birthday</option>
+              <option value="community" data-i18n="type_community">Community Gathering</option>
+              <option value="anniversary" data-i18n="type_anniversary">Anniversary</option>
+              <option value="corporate" data-i18n="type_corporate">Corporate / Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label for="q-date"><span data-i18n="field_date">Event Date</span> <span class="required">*</span></label>
+            <input type="date" id="q-date" class="input-styled">
+          </div>
+
+          <div class="form-field">
+            <label for="q-location" data-i18n="field_location">Location / City</label>
+            <input type="text" id="q-location" class="input-styled" placeholder="e.g., Chennai, Tamil Nadu" value="Chennai, India">
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-field">
+            <label for="q-budget"><span data-i18n="field_total_budget">Total Budget</span> <span class="required">*</span></label>
+            <input type="number" id="q-budget" class="input-styled" value="1200000" min="1000" step="5000">
+          </div>
+
+          <div class="form-field">
+            <label for="q-currency" data-i18n="field_currency">Currency</label>
+            <select id="q-currency" class="select-styled">
+              <option value="INR">INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="AED">AED</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field" style="margin-bottom: 20px;">
+          <label for="q-guests"><span data-i18n="field_guest_count">Expected Guest Count</span> <span class="required">*</span></label>
+          <input type="number" id="q-guests" class="input-styled" value="200" min="5" max="10000">
+        </div>
+
+        <div class="wizard-actions">
+          <span style="font-size: 12px; color: var(--text-dim);" data-i18n="budget_disclaimer">
+            All calculations are validated deterministically by CelebrationOS backend invariants.
+          </span>
+          <button id="btn-submit-quick" class="btn-primary" data-i18n="btn_generate_quick">
+            Generate Quick Plan ✨
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Guided Planner Form Card -->
+      <div id="form-guided-card" class="form-card" style="display: none;">
+        
+        <!-- Guided Stepper -->
+        <div class="guided-stepper">
+          <div id="step-indicator-1" class="step-item active">
+            <span class="step-circle">1</span>
+            <span data-i18n="step_basics">1. Basics</span>
+          </div>
+          <div id="step-indicator-2" class="step-item">
+            <span class="step-circle">2</span>
+            <span data-i18n="step_scale">2. Scale & Budget</span>
+          </div>
+          <div id="step-indicator-3" class="step-item">
+            <span class="step-circle">3</span>
+            <span data-i18n="step_traditions">3. Traditions & Rituals</span>
+          </div>
+          <div id="step-indicator-4" class="step-item">
+            <span class="step-circle">4</span>
+            <span data-i18n="step_review">4. Review & Confirm</span>
+          </div>
+        </div>
+
+        <!-- Section 1: Event Basics -->
+        <div id="guided-section-1">
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label for="g-title"><span data-i18n="field_title">Event Title</span> <span class="required">*</span></label>
+              <input type="text" id="g-title" class="input-styled" placeholder="e.g., Grand Heritage Wedding" value="Karthik & Divya Sacred Wedding">
+            </div>
+
+            <div class="form-field">
+              <label for="g-type"><span data-i18n="field_type">Event Type</span> <span class="required">*</span></label>
+              <select id="g-type" class="select-styled">
+                <option value="wedding" data-i18n="type_wedding">Wedding</option>
+                <option value="birthday" data-i18n="type_birthday">Birthday</option>
+                <option value="community" data-i18n="type_community">Community Gathering</option>
+                <option value="anniversary" data-i18n="type_anniversary">Anniversary</option>
+                <option value="corporate" data-i18n="type_corporate">Corporate / Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label for="g-date"><span data-i18n="field_date">Event Date</span> <span class="required">*</span></label>
+              <input type="date" id="g-date" class="input-styled">
+            </div>
+
+            <div class="form-field">
+              <label for="g-location" data-i18n="field_location">Location / City</label>
+              <input type="text" id="g-location" class="input-styled" placeholder="e.g., Madurai, Tamil Nadu" value="Madurai, Tamil Nadu">
+            </div>
+          </div>
+
+          <div class="wizard-actions">
+            <span></span>
+            <button id="btn-g-next-1" class="btn-primary" data-i18n="btn_next">Next Step →</button>
+          </div>
+        </div>
+
+        <!-- Section 2: Scale & Budget -->
+        <div id="guided-section-2" style="display: none;">
+          <div class="form-grid-3">
+            <div class="form-field">
+              <label for="g-budget"><span data-i18n="field_total_budget">Total Budget</span> <span class="required">*</span></label>
+              <input type="number" id="g-budget" class="input-styled" value="1500000" min="1000" step="10000">
+            </div>
+
+            <div class="form-field">
+              <label for="g-currency" data-i18n="field_currency">Currency</label>
+              <select id="g-currency" class="select-styled">
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="AED">AED</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="g-guests"><span data-i18n="field_guest_count">Expected Guest Count</span> <span class="required">*</span></label>
+            <input type="number" id="g-guests" class="input-styled" value="250" min="5" max="10000">
+          </div>
+
+          <div class="wizard-actions">
+            <button id="btn-g-prev-2" class="btn-secondary" data-i18n="btn_prev">← Back</button>
+            <button id="btn-g-next-2" class="btn-primary" data-i18n="btn_next">Next Step →</button>
+          </div>
+        </div>
+
+        <!-- Section 3: Traditions, Rituals & Theme -->
+        <div id="guided-section-3" style="display: none;">
+          <div class="form-field">
+            <label for="g-theme" data-i18n="field_theme">Theme & Aesthetic</label>
+            <input type="text" id="g-theme" class="input-styled" placeholder="e.g., Royal Temple Sanctuary with Marigold & Gold" value="Royal Temple Sanctuary & Marigold Canopy">
+          </div>
+
+          <!-- Cultural Rituals Guard Panel -->
+          <div class="rituals-panel">
+            <h4 style="color: var(--accent-gold); font-size: 15px;" data-i18n="rituals_heading">
+              Protect Cultural Traditions & Rituals
+            </h4>
+            <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;" data-i18n="rituals_desc">
+              Selected rituals are locked as protected. CelebrationOS guarantees they will never be removed by budget shocks.
+            </p>
+
+            <div id="rituals-checkbox-container" class="rituals-grid">
+              <!-- Dynamically populated ritual chips -->
+            </div>
+
+            <div class="custom-ritual-box">
+              <input type="text" id="input-custom-ritual" class="input-styled" placeholder="Enter custom ritual name (e.g., Kasi Yathra, Paaligai)" style="flex: 1;">
+              <button id="btn-add-custom-ritual" class="btn-secondary" style="white-space: nowrap;" data-i18n="add_custom_ritual">
+                + Add Custom Ritual
+              </button>
+            </div>
+          </div>
+
+          <div class="form-field" style="margin-top: 20px;">
+            <label for="g-notes" data-i18n="field_notes">Special Preferences & Dietary</label>
+            <textarea id="g-notes" class="textarea-styled" placeholder="e.g., 100% pure vegetarian plantain leaf banquet, need wheelchair ramp access, morning nadaswaram artist.">Traditional banana leaf feast, morning auspicious nadaswaram music, elderly wheelchair accessible venue.</textarea>
+          </div>
+
+          <div class="wizard-actions">
+            <button id="btn-g-prev-3" class="btn-secondary" data-i18n="btn_prev">← Back</button>
+            <button id="btn-g-next-3" class="btn-primary" data-i18n="btn_next">Next Step →</button>
+          </div>
+        </div>
+
+        <!-- Section 4: Review & Generate -->
+        <div id="guided-section-4" style="display: none;">
+          <div id="guided-review-summary" style="margin-bottom: 24px;"></div>
+
+          <div class="wizard-actions">
+            <button id="btn-g-prev-4" class="btn-secondary" data-i18n="btn_prev">← Back</button>
+            <button id="btn-submit-guided" class="btn-primary" data-i18n="btn_generate_guided">
+              Generate Guided Plan ✨
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Loading State Overlay -->
+      <div id="wizard-loading-box" class="loading-box">
+        <div class="spinner"></div>
+        <p style="color: var(--accent-gold); font-weight: 600;" data-i18n="generating_plan">
+          Crafting your celebration plan with Gemini AI...
+        </p>
+        <p style="color: var(--text-dim); font-size: 13px; margin-top: 6px;">
+          Calculating mathematical budget categories and scheduling timeline milestones.
+        </p>
+      </div>
+
+      <!-- Generated Plan Summary Card -->
+      <div id="wizard-plan-summary" class="plan-summary-card"></div>
+
+      <!-- Complete Event Plan Details & Section Renderers Container -->
+      <section id="plan-details-container" style="display: none; margin-top: 32px;"></section>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <p data-i18n="footer_text">CelebrationOS • Google for Developers PromptWars Virtual Challenge 5</p>
+  </footer>
+
+  <!-- 1. First-Time Setup Modal -->
+  <div id="first-time-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 data-i18n="first_time_title">Select Your Language Preferences</h3>
+          <p data-i18n="first_time_subtitle">Customize your display language and the language used for AI-generated event plans.</p>
+        </div>
+      </div>
+
+      <!-- Detected Language Pill -->
+      <div class="detected-pill">
+        <span data-i18n="first_time_detected">Detected device language:</span>
+        <span id="detected-lang-pill">🌐 Detecting...</span>
+      </div>
+
+      <!-- Display Language Select -->
+      <div class="form-group">
+        <label for="ft-ui-lang-select" data-i18n="ui_lang_label">Display Language (UI)</label>
+        <p class="form-hint" data-i18n="ui_lang_desc">The language used for buttons, menus, and on-screen text.</p>
+        <select id="ft-ui-lang-select" class="select-styled">
+          <option value="en">English</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+        </select>
+      </div>
+
+      <!-- AI Plan Language Select -->
+      <div class="form-group">
+        <label for="ft-plan-lang-select" data-i18n="plan_lang_label">AI Plan Language</label>
+        <p class="form-hint" data-i18n="plan_lang_desc">The language in which Gemini will write your budget, schedule, and recommendations.</p>
+        <select id="ft-plan-lang-select" class="select-styled">
+          <option value="en">English</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+        </select>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-ft-confirm" class="btn-primary" data-i18n="first_time_confirm">Confirm & Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Settings Modal (Accessible Anytime) -->
+  <div id="settings-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 data-i18n="settings_title">Language & Preferences</h3>
+          <p data-i18n="first_time_subtitle">Customize your display language and the language used for AI-generated event plans.</p>
+        </div>
+        <button id="btn-close-settings" class="close-btn">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label for="settings-ui-lang-select" data-i18n="ui_lang_label">Display Language (UI)</label>
+        <p class="form-hint" data-i18n="ui_lang_desc">The language used for buttons, menus, and on-screen text.</p>
+        <select id="settings-ui-lang-select" class="select-styled">
+          <option value="en">English</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="settings-plan-lang-select" data-i18n="plan_lang_label">AI Plan Language</label>
+        <p class="form-hint" data-i18n="plan_lang_desc">The language in which Gemini will write your budget, schedule, and recommendations.</p>
+        <select id="settings-plan-lang-select" class="select-styled">
+          <option value="en">English</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+        </select>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-save-settings" class="btn-primary" data-i18n="save_changes">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
