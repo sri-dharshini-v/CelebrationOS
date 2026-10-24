@@ -1,3 +1,8 @@
+import {
+  isRitualApplicableToEvent,
+  isRitualTaskApplicableToEvent
+} from '../public/js/eventRituals.js';
+
 /**
  * CelebrationOS Backend Invariant & Validation Engine
  * 
@@ -378,17 +383,28 @@ export function validateFrozenCommitments(proposedPlan, baselinePlan) {
  */
 export function validateProtectedRituals(proposedPlan, baselinePlan) {
   const violations = [];
-
-  if (!baselinePlan || !Array.isArray(baselinePlan.protectedRituals)) {
-    return { isValid: true, violations: [] };
-  }
-
-  const baselineProtected = baselinePlan.protectedRituals.filter(r => r.isProtected);
+  const eventType = proposedPlan?.eventDetails?.eventType;
+  const baselineProtected = Array.isArray(baselinePlan?.protectedRituals)
+    ? baselinePlan.protectedRituals.filter(r => r.isProtected)
+    : [];
   const proposedRitualsMap = new Map(
     (proposedPlan.protectedRituals || []).map(r => [r.id, r])
   );
 
+  (proposedPlan.protectedRituals || []).forEach(ritual => {
+    if (isRitualApplicableToEvent(ritual, eventType)) return;
+
+    const grandfathered = baselinePlan?.eventDetails?.eventType === eventType &&
+      baselineProtected.some(baselineRitual => baselineRitual.id === ritual.id);
+    if (!grandfathered) {
+      violations.push(
+        `RITUAL EVENT-TYPE VIOLATION: Protected ritual '${ritual.name}' is not applicable to event type '${eventType}'.`
+      );
+    }
+  });
+
   baselineProtected.forEach(baseRitual => {
+    if (!isRitualApplicableToEvent(baseRitual, eventType)) return;
     const proposedRitual = proposedRitualsMap.get(baseRitual.id);
 
     if (!proposedRitual) {
@@ -406,6 +422,31 @@ export function validateProtectedRituals(proposedPlan, baselinePlan) {
     isValid: violations.length === 0,
     violations
   };
+}
+
+export function validateEventSpecificTasks(proposedPlan, baselinePlan) {
+  const violations = [];
+  const eventType = proposedPlan?.eventDetails?.eventType;
+  const baselineTasks = baselinePlan?.eventDetails?.eventType === eventType
+    ? (baselinePlan.milestones || []).flatMap(milestone => milestone.tasks || [])
+    : [];
+  const baselineTaskIds = new Set(baselineTasks.map(task => task.id));
+
+  (proposedPlan?.milestones || []).forEach(milestone => {
+    (milestone.tasks || []).forEach(task => {
+      if (
+        isRitualTaskApplicableToEvent(task, eventType) ||
+        baselineTaskIds.has(task.id)
+      ) {
+        return;
+      }
+      violations.push(
+        `EVENT-TYPE TASK VIOLATION: Task '${task.title}' is not applicable to event type '${eventType}'.`
+      );
+    });
+  });
+
+  return { isValid: violations.length === 0, violations };
 }
 
 /**
@@ -450,10 +491,12 @@ export function validateAndNormalizePlan(proposedPlan, options = {}) {
 
   // 4. Protected Rituals Check
   const ritualsResult = validateProtectedRituals(normalizedPlan, baselinePlan);
+  const eventTasksResult = validateEventSpecificTasks(normalizedPlan, baselinePlan);
 
   const allViolations = [
     ...commitmentsResult.violations,
-    ...ritualsResult.violations
+    ...ritualsResult.violations,
+    ...eventTasksResult.violations
   ];
 
   return {

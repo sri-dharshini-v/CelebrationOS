@@ -5,6 +5,7 @@
 
 import { i18n } from './i18n.js';
 import { escapeHtml } from './html.js';
+import { getEventRituals, isRitualApplicableToEvent } from './eventRituals.js';
 
 export class WizardController {
   constructor() {
@@ -34,8 +35,6 @@ export class WizardController {
     if (qDate && !qDate.value) qDate.value = dateStr;
     if (gDate && !gDate.value) gDate.value = dateStr;
 
-    // Pre-select essential Muhurtham ritual by default
-    this.selectedRituals.add('r_muhurtham');
     this.renderRituals();
   }
 
@@ -49,7 +48,9 @@ export class WizardController {
       tabQuick.addEventListener('click', () => {
         this.currentMode = 'quick';
         tabQuick.classList.add('active');
+        tabQuick.setAttribute('aria-pressed', 'true');
         if (tabGuided) tabGuided.classList.remove('active');
+        if (tabGuided) tabGuided.setAttribute('aria-pressed', 'false');
         if (formQuick) formQuick.style.display = 'block';
         if (formGuided) formGuided.style.display = 'none';
         this.clearAlerts();
@@ -60,7 +61,9 @@ export class WizardController {
       tabGuided.addEventListener('click', () => {
         this.currentMode = 'guided';
         tabGuided.classList.add('active');
+        tabGuided.setAttribute('aria-pressed', 'true');
         if (tabQuick) tabQuick.classList.remove('active');
+        if (tabQuick) tabQuick.setAttribute('aria-pressed', 'false');
         if (formGuided) formGuided.style.display = 'block';
         if (formQuick) formQuick.style.display = 'none';
         this.goToStep(1);
@@ -121,6 +124,9 @@ export class WizardController {
   bindRituals() {
     const addCustomBtn = document.getElementById('btn-add-custom-ritual');
     const customInput = document.getElementById('input-custom-ritual');
+    const eventTypeInput = document.getElementById('g-type');
+
+    eventTypeInput?.addEventListener('change', () => this.renderRituals());
 
     if (addCustomBtn && customInput) {
       addCustomBtn.addEventListener('click', () => {
@@ -145,16 +151,8 @@ export class WizardController {
     const container = document.getElementById('rituals-checkbox-container');
     if (!container) return;
 
-    const defaultRituals = [
-      { id: 'r_muhurtham', name: 'Muhurtham / Sacred Auspicious Lagna', desc: 'Core Vedic ceremony tying sacred knot' },
-      { id: 'r_saptapadi', name: 'Saptapadi / Seven Sacred Vows', desc: 'Walking around holy fire' },
-      { id: 'r_haldi', name: 'Haldi / Mangala Snanam', desc: 'Turmeric cleansing & blessing ritual' },
-      { id: 'r_sangeet', name: 'Sangeet / Musical Celebration', desc: 'Traditional music & dance celebration' },
-      { id: 'r_deeparadhana', name: 'Deeparadhana / Lamp Lighting', desc: 'Sacred oil lamp lighting ceremony' },
-      { id: 'r_feast', name: 'Traditional Community Banquet', desc: 'Auspicious multi-course feast' }
-    ];
-
-    const allRituals = [...defaultRituals, ...this.customRituals];
+    const eventType = document.getElementById('g-type')?.value;
+    const allRituals = [...getEventRituals(eventType), ...this.customRituals];
 
     container.innerHTML = allRituals.map(rit => {
       const isChecked = this.selectedRituals.has(rit.id);
@@ -194,6 +192,9 @@ export class WizardController {
     const budget = document.getElementById('g-budget')?.value || 500000;
     const currency = document.getElementById('g-currency')?.value || 'INR';
     const theme = document.getElementById('g-theme')?.value || 'Traditional';
+    const protectedRitualCount = Array.from(this.selectedRituals)
+      .filter(id => isRitualApplicableToEvent({ id }, type))
+      .length;
 
     const reviewBox = document.getElementById('guided-review-summary');
     if (reviewBox) {
@@ -204,7 +205,7 @@ export class WizardController {
             <strong>Type:</strong> ${escapeHtml(type.toUpperCase())} | <strong>Date:</strong> ${escapeHtml(date)} | <strong>Location:</strong> ${escapeHtml(loc || 'Not specified')}<br>
             <strong>Scale:</strong> ${escapeHtml(guests)} Guests | <strong>Budget:</strong> ${escapeHtml(budget)} ${escapeHtml(currency)}<br>
             <strong>Theme:</strong> ${escapeHtml(theme)}<br>
-            <strong>Protected Traditions:</strong> ${escapeHtml(this.selectedRituals.size)} rituals locked against budget cuts
+            <strong>Protected Traditions:</strong> ${escapeHtml(protectedRitualCount)} rituals locked against budget cuts
           </p>
         </div>
       `;
@@ -215,14 +216,11 @@ export class WizardController {
     this.clearAlerts();
 
     if (step === 1) {
+      const eventType = document.getElementById('g-type')?.value;
       const title = document.getElementById('g-title')?.value.trim();
       const date = document.getElementById('g-date')?.value.trim();
-      if (!title) {
-        this.showAlert(i18n.t('error_fill_required', 'Please fill in Event Title'));
-        return false;
-      }
-      if (!date) {
-        this.showAlert('Please select an event date');
+      if (!eventType || !title || !date) {
+        this.showAlert(i18n.t('error_fill_required', 'Please fill in all required fields marked with *'));
         return false;
       }
     }
@@ -294,15 +292,15 @@ export class WizardController {
     this.clearAlerts();
 
     const title = document.getElementById('q-title')?.value.trim();
-    const eventType = document.getElementById('q-type')?.value || 'wedding';
+    const eventType = document.getElementById('q-type')?.value;
     const date = document.getElementById('q-date')?.value;
-    const location = document.getElementById('q-location')?.value.trim() || 'City Center';
+    const location = document.getElementById('q-location')?.value.trim() || i18n.t('location_unspecified', 'Not specified');
     const guestCount = Number(document.getElementById('q-guests')?.value);
     const totalBudget = Number(document.getElementById('q-budget')?.value);
     const currency = document.getElementById('q-currency')?.value || 'INR';
 
-    if (!title) {
-      this.showAlert(i18n.t('error_fill_required', 'Please fill in Event Title'));
+    if (!eventType || !title || !date) {
+      this.showAlert(i18n.t('error_fill_required', 'Please fill in all required fields marked with *'));
       return;
     }
     if (!guestCount || guestCount <= 0) {
@@ -335,25 +333,28 @@ export class WizardController {
     this.clearAlerts();
 
     const title = document.getElementById('g-title')?.value.trim();
-    const eventType = document.getElementById('g-type')?.value || 'wedding';
+    const eventType = document.getElementById('g-type')?.value;
     const date = document.getElementById('g-date')?.value;
-    const location = document.getElementById('g-location')?.value.trim() || 'City Center';
+    const location = document.getElementById('g-location')?.value.trim() || i18n.t('location_unspecified', 'Not specified');
     const guestCount = Number(document.getElementById('g-guests')?.value);
     const totalBudget = Number(document.getElementById('g-budget')?.value);
     const currency = document.getElementById('g-currency')?.value || 'INR';
-    const theme = document.getElementById('g-theme')?.value.trim() || 'Royal Heritage';
+    const theme = document.getElementById('g-theme')?.value.trim() || 'Classic Celebration';
     const notes = document.getElementById('g-notes')?.value.trim() || '';
 
     // Build protected rituals array from selected IDs
-    const ritualsArray = Array.from(this.selectedRituals).map(id => {
-      const custom = this.customRituals.find(c => c.id === id);
-      return {
-        id,
-        name: custom ? custom.name : id.replace('r_', '').replace(/_/g, ' ').toUpperCase(),
-        significance: custom ? custom.significance : 'User-Protected Tradition',
-        isProtected: true
-      };
-    });
+    const ritualsArray = Array.from(this.selectedRituals)
+      .filter(id => isRitualApplicableToEvent({ id }, eventType))
+      .map(id => {
+        const custom = this.customRituals.find(c => c.id === id);
+        const preset = getEventRituals(eventType).find(ritual => ritual.id === id);
+        return {
+          id,
+          name: custom ? custom.name : preset?.name || id.replace('r_', '').replace(/_/g, ' ').toUpperCase(),
+          significance: custom ? custom.significance : preset?.desc || 'User-Protected Tradition',
+          isProtected: true
+        };
+      });
 
     const payload = {
       title,

@@ -175,13 +175,13 @@ globalThis.fetch = async (url, options) => {
   shockRequest = { url, options };
   return {
     ok: true,
-    async json() {
-      return {
+    async text() {
+      return JSON.stringify({
         success: true,
         doc: shockedDoc,
         warnings: ['Protected commitments remain unchanged.'],
         shock: { budgetChanged: true, dateChanged: true, shiftedTaskDates: 1 }
-      };
+      });
     }
   };
 };

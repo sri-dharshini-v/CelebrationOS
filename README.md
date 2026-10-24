@@ -7,12 +7,13 @@ CelebrationOS helps users plan birthdays, weddings, and other celebrations with 
 Features
 
 - 🤖 AI-powered event plan generation
+- 💬 AI event-planning assistant for ideas, budgets, schedules, and checklists
 - 💰 Budget planning and visualization
 - 📅 Event timelines and checklists
 - ⚡ Shock Engine to preview changes when budgets, guest counts, or dates change
 - 📜 Version history and Safe Undo
 - 🔒 Protection for paid, completed, and important traditional rituals
-- 🌐 Multilingual support: English, Tamil, and Hindi
+- 🌐 Selectable language preferences for 10 primary Indian languages, with UI coverage and AI verification status shown honestly; reviewed local UI and mock-plan content currently covers English, Tamil, and Hindi
 - 💾 Saved plans and plan management
 - ✅ Plan validation and budget checks
 
@@ -34,26 +35,52 @@ Getting Started
 
 Prerequisites
 
-- Node.js and npm
-- A Google Gemini API key
+- Node.js 20 or later. The Google GenAI SDK used by the project requires Node.js 20 or later.
+- npm, installed with Node.js. The project does not specify a separate npm version requirement.
+- A Google Gemini API key for Gemini-powered generation and assistant responses.
 
 Installation
 
 1. Clone the repository:
-   
+
    git clone https://github.com/sri-dharshini-v/CelebrationOS.git
 
 2. Open the project folder:
-   
+
    cd CelebrationOS
 
 3. Install dependencies:
-   
+
    npm install
 
-4. Configure your Gemini API key in your local environment file. Never commit API keys or secrets to GitHub.
+4. Create your local environment file in Windows PowerShell:
 
-5. Start the application using the start command configured in "package.json".
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+5. Open `.env` and add your own Google AI Studio API key as the value of `GEMINI_API_KEY`. Do not share your key, include it in screenshots, or commit `.env` to Git. The required environment variable names are defined by [`.env.example`](./.env.example):
+
+   - `GEMINI_API_KEY` — your private Gemini API key.
+   - `PORT` — the server port; optional, defaults to `3000`.
+
+6. Run the test suite:
+
+   ```powershell
+   npm test
+   ```
+
+7. Start CelebrationOS locally:
+
+   ```powershell
+   npm start
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000). If you set a different `PORT`, use that port in the local URL.
+
+### Hosting
+
+The existing live demo is hosted at [https://celebrationos.onrender.com](https://celebrationos.onrender.com). To configure a hosting environment, add the same variable names from `.env.example` (`GEMINI_API_KEY` and, if needed, `PORT`) in that provider's environment-variable settings. Keep the API key private; do not put its value in source code or commit it. Follow the hosting provider's current instructions for applying environment-variable changes. These instructions describe configuration only and do not indicate that a deployment has been performed.
 
 Project Goal
 

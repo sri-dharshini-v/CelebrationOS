@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { validateAndNormalizePlan } from './invariants.js';
-import { generateEventPlan } from './gemini.js';
+import { answerEventPlanningQuestion, generateEventPlan, isGeminiKeyConfigured } from './gemini.js';
 import {
   listPlans,
   getPlan,
@@ -15,6 +15,7 @@ import {
 } from './storage.js';
 import { executeSafeUndo } from './historyEngine.js';
 import { applyPlanShock } from './shockEngine.js';
+import { getLanguage } from './languages.js';
 
 // Load environment variables from .env if present
 dotenv.config();
@@ -24,7 +25,19 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
+const assistantRateLimit = new Map();
+const ASSISTANT_RATE_WINDOW_MS = 10 * 60 * 1000;
+const ASSISTANT_RATE_LIMIT = 10;
+const ASSISTANT_MAX_QUESTION_LENGTH = 1200;
+const ASSISTANT_EVENT_TYPES = new Set([
+  'wedding',
+  'birthday',
+  'community',
+  'anniversary',
+  'corporate'
+]);
 
 // Minimal Server Health-Check Endpoint
 app.get('/api/health', (req, res) => {
@@ -79,6 +92,13 @@ app.post('/api/plan/validate', (req, res) => {
 app.post('/api/plan/generate', async (req, res) => {
   try {
     const eventRequest = req.body || {};
+    const language = eventRequest.language ?? 'en';
+    if (!getLanguage(language)) {
+      return res.status(400).json({
+        success: false,
+        errors: ['Unsupported output language. Select one of the available primary languages.']
+      });
+    }
 
     const result = await generateEventPlan(eventRequest, {
       baselinePlan: req.body.baselinePlan || null,
@@ -87,9 +107,86 @@ app.post('/api/plan/generate', async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({
+    res.status(error.code === 'language_generation_unavailable' ? 503 : 500).json({
       success: false,
       errors: [error.message]
+    });
+  }
+});
+
+// Standalone assistant questions never read or mutate saved plans.
+app.post('/api/assistant/chat', async (req, res) => {
+  const now = Date.now();
+  for (const [client, bucket] of assistantRateLimit) {
+    if (now - bucket.windowStart >= ASSISTANT_RATE_WINDOW_MS) {
+      assistantRateLimit.delete(client);
+    }
+  }
+
+  const client = req.ip || req.socket.remoteAddress || 'unknown';
+  let bucket = assistantRateLimit.get(client);
+  if (!bucket || now - bucket.windowStart >= ASSISTANT_RATE_WINDOW_MS) {
+    if (!bucket && assistantRateLimit.size >= 10000) {
+      return res.status(429).json({
+        success: false,
+        error: 'assistant_rate_limited'
+      });
+    }
+    bucket = { windowStart: now, count: 0 };
+    assistantRateLimit.set(client, bucket);
+  }
+  if (bucket.count >= ASSISTANT_RATE_LIMIT) {
+    return res.status(429).json({
+      success: false,
+      error: 'assistant_rate_limited'
+    });
+  }
+  bucket.count += 1;
+
+  const { question, eventType, language } = req.body || {};
+  if (typeof question !== 'string' || question.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'assistant_question_required'
+    });
+  }
+  if (question.length > ASSISTANT_MAX_QUESTION_LENGTH) {
+    return res.status(400).json({
+      success: false,
+      error: 'assistant_question_too_long'
+    });
+  }
+  if (!ASSISTANT_EVENT_TYPES.has(eventType)) {
+    return res.status(400).json({
+      success: false,
+      error: 'assistant_invalid_event_type'
+    });
+  }
+  if (!getLanguage(language)) {
+    return res.status(400).json({
+      success: false,
+      error: 'assistant_invalid_language'
+    });
+  }
+  if (!isGeminiKeyConfigured()) {
+    return res.status(503).json({
+      success: false,
+      error: 'assistant_unavailable'
+    });
+  }
+
+  try {
+    const answer = await answerEventPlanningQuestion({
+      question: question.trim(),
+      eventType,
+      language
+    });
+    res.json({ success: true, answer });
+  } catch (error) {
+    console.warn('[Assistant] Gemini request failed:', error.message);
+    res.status(502).json({
+      success: false,
+      error: 'assistant_unavailable'
     });
   }
 });

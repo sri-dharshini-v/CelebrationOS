@@ -10,6 +10,10 @@
 
 import { getPlan, updatePlan } from './storage.js';
 import { round2 } from './invariants.js';
+import {
+  filterRitualsForEvent,
+  filterRitualTasksForEvent
+} from '../public/js/eventRituals.js';
 
 /**
  * Performs a Safe Undo to a specified target revision
@@ -32,6 +36,28 @@ export function executeSafeUndo(planId, targetRevision) {
   // Clone the historical snapshot to be restored
   const restoredPlan = JSON.parse(JSON.stringify(targetSnap.planSnapshot));
   const conflicts = [];
+  const restoredEventType = restoredPlan.eventDetails?.eventType;
+  const originalRituals = Array.isArray(restoredPlan.protectedRituals)
+    ? restoredPlan.protectedRituals
+    : [];
+  restoredPlan.protectedRituals = filterRitualsForEvent(originalRituals, restoredEventType);
+  originalRituals
+    .filter(ritual => !restoredPlan.protectedRituals.includes(ritual))
+    .forEach(ritual => {
+      conflicts.push(
+        `Removed protected ritual '${ritual.name}' because it is not applicable to the restored event type '${restoredEventType}'.`
+      );
+    });
+  const originalTaskCount = (restoredPlan.milestones || [])
+    .reduce((count, milestone) => count + (milestone.tasks || []).length, 0);
+  filterRitualTasksForEvent(restoredPlan, restoredEventType);
+  const filteredTaskCount = (restoredPlan.milestones || [])
+    .reduce((count, milestone) => count + (milestone.tasks || []).length, 0);
+  if (filteredTaskCount < originalTaskCount) {
+    conflicts.push(
+      `Removed ${originalTaskCount - filteredTaskCount} event-inappropriate task(s) from the restored plan.`
+    );
+  }
 
   // -----------------------------------------------------------------
   // 1. Preserve Paid Bookings and Frozen Budget Items
@@ -136,7 +162,10 @@ export function executeSafeUndo(planId, targetRevision) {
   // -----------------------------------------------------------------
   // 3. Preserve User-Protected Cultural Rituals
   // -----------------------------------------------------------------
-  const currentProtectedRituals = (currentPlan.protectedRituals || []).filter(r => r.isProtected);
+  const currentProtectedRituals = filterRitualsForEvent(
+    currentPlan.protectedRituals,
+    restoredEventType
+  ).filter(r => r.isProtected);
   currentProtectedRituals.forEach(currRitual => {
     const existingIdx = (restoredPlan.protectedRituals || []).findIndex(r => r.id === currRitual.id);
     if (existingIdx === -1) {
@@ -148,6 +177,16 @@ export function executeSafeUndo(planId, targetRevision) {
       restoredPlan.protectedRituals[existingIdx].isProtected = true;
     }
   });
+  const taskCountBeforeFinalFilter = (restoredPlan.milestones || [])
+    .reduce((count, milestone) => count + (milestone.tasks || []).length, 0);
+  filterRitualTasksForEvent(restoredPlan, restoredEventType);
+  const taskCountAfterFinalFilter = (restoredPlan.milestones || [])
+    .reduce((count, milestone) => count + (milestone.tasks || []).length, 0);
+  if (taskCountAfterFinalFilter < taskCountBeforeFinalFilter) {
+    conflicts.push(
+      `Removed ${taskCountBeforeFinalFilter - taskCountAfterFinalFilter} event-inappropriate task(s) after preserving completed commitments.`
+    );
+  }
 
   // -----------------------------------------------------------------
   // 4. Save Restored State as a New Immutable Revision

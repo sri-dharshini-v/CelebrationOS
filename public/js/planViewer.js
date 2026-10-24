@@ -5,6 +5,10 @@
 
 import { i18n } from './i18n.js';
 import { escapeHtml } from './html.js';
+import {
+  filterRitualsForEvent,
+  filterRitualTasksForEvent
+} from './eventRituals.js';
 
 const CATEGORY_COLOR_TOKENS = [
   '--chart-color-1', '--chart-color-2', '--chart-color-3', '--chart-color-4',
@@ -45,8 +49,15 @@ export class PlanViewer {
     const container = document.getElementById('plan-details-container');
     if (!container) return;
 
-    const plan = doc.activePlan;
+    const plan = {
+      ...doc.activePlan,
+      milestones: (doc.activePlan.milestones || []).map(milestone => ({
+        ...milestone,
+        tasks: [...(milestone.tasks || [])]
+      }))
+    };
     const details = plan.eventDetails || {};
+    filterRitualTasksForEvent(plan, details.eventType);
 
     container.innerHTML = `
       <div class="glass-card plan-header-card" style="margin-bottom:24px;">
@@ -105,7 +116,7 @@ export class PlanViewer {
       </div>
 
       <div id="section-view-rituals" class="plan-section" style="display:${this.activeTab === 'all' || this.activeTab === 'rituals' ? 'block' : 'none'};">
-        ${this.renderProtectedRituals(plan.protectedRituals)}
+        ${this.renderProtectedRituals(plan.protectedRituals, details.eventType)}
       </div>
 
       <div id="section-view-recommendations" class="plan-section" style="display:${this.activeTab === 'all' || this.activeTab === 'recommendations' ? 'block' : 'none'};">
@@ -1034,10 +1045,11 @@ export class PlanViewer {
       </div>`;
   }
 
-  renderProtectedRituals(rituals) {
-    if (!rituals?.length) return '';
+  renderProtectedRituals(rituals, eventType) {
+    const applicableRituals = filterRitualsForEvent(rituals, eventType);
+    if (!applicableRituals.length) return '';
 
-    const ritualCards = rituals.map(r => `
+    const ritualCards = applicableRituals.map(r => `
       <div class="glass-card ritual-guard-card" style="border:1px solid color-mix(in srgb, var(--accent-gold) 45%, transparent);background:color-mix(in srgb, var(--accent-gold) 5%, var(--bg-card));padding:20px;margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;">
           <div style="display:flex;align-items:center;gap:8px;">

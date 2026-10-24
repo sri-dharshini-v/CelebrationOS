@@ -4,6 +4,10 @@ import {
   round2,
   validateAndNormalizePlan
 } from './invariants.js';
+import {
+  filterRitualsForEvent,
+  filterRitualTasksForEvent
+} from '../public/js/eventRituals.js';
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -34,6 +38,11 @@ export function applyPlanShock(plan, shock = {}) {
   }
 
   const updatedPlan = JSON.parse(JSON.stringify(plan));
+  updatedPlan.protectedRituals = filterRitualsForEvent(
+    updatedPlan.protectedRituals,
+    updatedPlan.eventDetails.eventType
+  );
+  filterRitualTasksForEvent(updatedPlan, updatedPlan.eventDetails.eventType);
   const warnings = [];
   let budgetChanged = false;
   let dateChanged = false;

@@ -98,7 +98,10 @@ async function runTests() {
 
   assert(Math.round(totalAllocated) === totalBudget, `Total allocated (${totalAllocated}) matches totalBudget (${totalBudget})`);
   assert(Math.round(totalPercentage) >= 99 && Math.round(totalPercentage) <= 101, `Category percentages sum to ~100% (${totalPercentage.toFixed(1)}%)`);
-  assert(paidFrozenItemsCount > 0, `Found ${paidFrozenItemsCount} frozen/paid commitment items`);
+  assert(
+    paidFrozenItemsCount === 0,
+    'Newly generated budget items are not incorrectly marked as already paid or frozen'
+  );
 
   // -----------------------------------------------------------------
   // 3. Test Timeline & Task Checklist Interactions
