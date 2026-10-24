@@ -260,7 +260,7 @@ export async function generateEventPlan(eventRequest, options = {}) {
 
       geminiStartedAt = performance.now();
       const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-3.5-flash',
         contents: [
           { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
         ],
@@ -283,6 +283,13 @@ export async function generateEventPlan(eventRequest, options = {}) {
       geminiDurationMs ??= geminiStartedAt === undefined
         ? 0
         : Math.round(performance.now() - geminiStartedAt);
+      const safeError = {
+        model: 'gemini-3.8-flash',
+        status: apiError?.status ?? apiError?.response?.status ?? apiError?.code,
+        code: apiError?.error?.code ?? apiError?.code ?? apiError?.status,
+        message: typeof apiError?.message === 'string' ? apiError.message.slice(0, 200) : undefined
+      };
+      console.warn('[Gemini Service] Gemini API call failed:', JSON.stringify(safeError));
       console.warn('[Gemini Service] Gemini API call failed, falling back to mock mode.');
       const fallbackStartedAt = performance.now();
       try {
