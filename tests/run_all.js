@@ -18,6 +18,7 @@ const testFiles = [
   'test_saved_plan_editing.js',
   'test_shock_engine.js',
   'test_event_specific_rituals.js',
+  'test_gemini_model_fallback.js',
   'test_wizard_first_time.js',
   'test_step2.js',
   'test_step3.js',

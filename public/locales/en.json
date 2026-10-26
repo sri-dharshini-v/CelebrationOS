@@ -144,5 +144,7 @@
   "language_ui_unavailable": "UI not translated; English fallback",
   "language_ai_verified": "AI verified",
   "language_ai_unverified": "AI not verified",
-  "language_status_unknown": "support status unknown"
+  "language_status_unknown": "support status unknown",
+  "assistant_quota_exhausted": "The AI assistant has reached today's free usage limit. Please try again later, or ask again tomorrow.",
+  "plan_mock_notice": "AI service is temporarily unavailable, so this is a built-in sample plan. Your budget and plan structure are still valid and saved."
 }

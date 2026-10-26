@@ -144,5 +144,7 @@
   "language_ui_unavailable": "UI अनुवाद उपलब्ध नहीं; अंग्रेज़ी दिखाई जाएगी",
   "language_ai_verified": "AI सत्यापित",
   "language_ai_unverified": "AI सत्यापित नहीं",
-  "language_status_unknown": "स्थिति अज्ञात"
+  "language_status_unknown": "स्थिति अज्ञात",
+  "assistant_quota_exhausted": "AI सहायक आज की मुफ़्त उपयोग सीमा तक पहुँच गया है। कृपया बाद में पुनः प्रयास करें या कल फिर पूछें।",
+  "plan_mock_notice": "AI सेवा अस्थायी रूप से उपलब्ध नहीं है, इसलिए यह अंतर्निहित नमूना योजना है। आपका बजट और योजना की संरचना मान्य है और सहेजी गई है।"
 }

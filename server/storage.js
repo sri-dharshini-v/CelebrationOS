@@ -25,16 +25,22 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+function invalidPlanIdError(message) {
+  const error = new Error(message);
+  error.statusCode = 400;
+  return error;
+}
+
 function getPlanFilePath(planId) {
   if (typeof planId !== 'string' || !planId.trim()) {
-    throw new Error('A valid plan ID is required.');
+    throw invalidPlanIdError('A valid plan ID is required.');
   }
 
   // Prevent directory traversal.
   const sanitized = planId.replace(/[^a-zA-Z0-9_-]/g, '');
 
   if (!sanitized || sanitized !== planId) {
-    throw new Error('Invalid plan ID.');
+    throw invalidPlanIdError('Invalid plan ID.');
   }
 
   return path.join(DATA_DIR, `${sanitized}.json`);

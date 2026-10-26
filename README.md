@@ -82,6 +82,14 @@ Installation
 
 The existing live demo is hosted at [https://celebrationos.onrender.com](https://celebrationos.onrender.com). To configure a hosting environment, add the same variable names from `.env.example` (`GEMINI_API_KEY` and, if needed, `PORT`) in that provider's environment-variable settings. Keep the API key private; do not put its value in source code or commit it. Follow the hosting provider's current instructions for applying environment-variable changes. These instructions describe configuration only and do not indicate that a deployment has been performed.
 
+### Gemini quotas, model fallback, and deployed troubleshooting
+
+- Plan generation and the assistant try a list of Gemini models in order and move to the next model when one is rate limited, exhausted, or unavailable. This is what keeps the feature working when a single model's daily quota is used up. Override the order with `GEMINI_PLAN_MODELS` and `GEMINI_ASSISTANT_MODELS` (see [`.env.example`](./.env.example)).
+- Google's free tier enforces small per-model daily request limits. A public demo can exhaust them quickly. For reliable multi-user use, enable billing on the Google AI Studio project or use a key with sufficient quota; code-level fallback cannot create quota that does not exist.
+- `GET /api/health` reports `geminiConfigured`, `planModels`, and `assistantModels` (model names only, never the key). Use it to confirm the deployment picked up the environment variable and the expected model list.
+- If assistant requests fail only on the deployed site, check the hosting provider's environment variables first: a missing, expired, or restricted `GEMINI_API_KEY` makes plan generation fall back to the built-in sample plan (`isMock: true`) and makes the assistant return a temporary-unavailable or quota message. Server logs record only the model, HTTP status, Google error code, and a truncated message.
+- Render's free instances stop after inactivity, so the first request after a pause can take extra time. Opening the site before a demo, or using a paid instance with health-check pinging, reduces that cold-start delay.
+
 Project Goal
 
 To make event planning easier, more flexible, budget-aware, and accessible to people across India through multilingual AI assistance.

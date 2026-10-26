@@ -17,11 +17,126 @@ import {
 } from './eventPlanBlueprints.js';
 
 /**
+ * Model fallback lists.
+ *
+ * Gemini API quotas are enforced per project, per model. A single model can be
+ * exhausted (HTTP 429) while another model still has capacity, so every request
+ * rotates through this list instead of failing on the first exhausted model.
+ * Override the list with GEMINI_PLAN_MODELS / GEMINI_ASSISTANT_MODELS
+ * (comma separated, first entry is tried first).
+ */
+const DEFAULT_PLAN_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-3.6-flash'
+];
+
+const DEFAULT_ASSISTANT_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3-flash-preview',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash'
+];
+
+const GEMINI_REQUEST_TIMEOUT_MS = 60000;
+
+function resolveModelList(envVar, defaults) {
+  const configured = (process.env[envVar] || '')
+    .split(',')
+    .map(model => model.trim())
+    .filter(Boolean);
+
+  return [...new Set(configured.length > 0 ? configured : defaults)];
+}
+
+export function getPlanModels() {
+  return resolveModelList('GEMINI_PLAN_MODELS', DEFAULT_PLAN_MODELS);
+}
+
+export function getAssistantModels() {
+  return resolveModelList('GEMINI_ASSISTANT_MODELS', DEFAULT_ASSISTANT_MODELS);
+}
+
+/**
  * Checks if a valid, non-placeholder Gemini API key is configured
  */
 export function isGeminiKeyConfigured() {
   const key = process.env.GEMINI_API_KEY;
   return Boolean(key && key.trim() !== '' && key !== 'your_gemini_api_key_here');
+}
+
+/**
+ * Reduces a provider error to non-sensitive diagnostic fields only:
+ * model name, HTTP status, Google error code, and a truncated message.
+ * Headers, request bodies, environment variables, and API keys are never included.
+ */
+function describeGeminiError(error, model) {
+  const rawStatus = error?.status ?? error?.response?.status;
+  const status = Number(rawStatus);
+  const rawCode = error?.error?.code ?? error?.code ?? rawStatus;
+
+  return {
+    model,
+    status: Number.isFinite(status) && status > 0 ? status : undefined,
+    code: typeof rawCode === 'number' || typeof rawCode === 'string' ? rawCode : undefined,
+    message: typeof error?.message === 'string' ? error.message.slice(0, 200) : undefined
+  };
+}
+
+function isQuotaAttempt(attempt) {
+  return attempt?.status === 429 || attempt?.code === 429 || attempt?.code === 'RESOURCE_EXHAUSTED';
+}
+
+function createGeminiFailure(attempts) {
+  const error = new Error('Gemini request failed for every configured model.');
+  error.code = attempts.length > 0 && attempts.every(isQuotaAttempt)
+    ? 'quota_exhausted'
+    : 'gemini_unavailable';
+  error.attempts = attempts;
+  return error;
+}
+
+function logGeminiFailure(label, attempts, error) {
+  console.warn(`[Gemini Service] ${label} failed:`, JSON.stringify({
+    reason: error.code,
+    models: attempts.map(attempt => attempt.model),
+    attempts
+  }));
+}
+
+/**
+ * Calls Gemini with model rotation so one exhausted model does not break the feature.
+ */
+async function generateContentWithFallback({ label, models, contents, config }) {
+  const attempts = [];
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: {
+      timeout: GEMINI_REQUEST_TIMEOUT_MS,
+      retryOptions: {
+        attempts: 2,
+        httpStatusCodes: [503],
+        initialDelay: 0.5,
+        maxDelay: 2
+      }
+    }
+  });
+
+  for (const model of models) {
+    try {
+      const response = await ai.models.generateContent({ model, contents, config });
+      return { response, model, attempts };
+    } catch (error) {
+      const attempt = describeGeminiError(error, model);
+      attempts.push(attempt);
+      console.warn(`[Gemini Service] ${label} model failed:`, JSON.stringify(attempt));
+    }
+  }
+
+  throw createGeminiFailure(attempts);
 }
 
 /**
@@ -36,13 +151,15 @@ export async function answerEventPlanningQuestion({ question, eventType, languag
   if (!languageInfo) {
     throw new Error('Unsupported assistant response language.');
   }
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.6-flash',
-    contents: [{
-      role: 'user',
-      parts: [{
-        text: `You are CelebrationOS's friendly event-planning assistant. Help with event ideas, budget-saving suggestions, schedules, decorations, and checklists for weddings, birthdays, and other celebrations.
+  let result;
+  try {
+    result = await generateContentWithFallback({
+      label: 'Assistant',
+      models: getAssistantModels(),
+      contents: [{
+        role: 'user',
+        parts: [{
+          text: `You are CelebrationOS's friendly event-planning assistant. Help with event ideas, budget-saving suggestions, schedules, decorations, and checklists for weddings, birthdays, and other celebrations.
 
 The event type is: ${eventType}.
 Answer in ${languageInfo.englishName} (${languageInfo.nativeName}), using the ${languageInfo.script} script.
@@ -51,17 +168,21 @@ Be warm, practical, concise, and culturally respectful. Give actionable suggesti
 
 User question:
 ${question}`
-      }]
-    }],
-    config: {
-      systemInstruction: 'You are a helpful event-planning assistant. Keep answers focused on the user’s planning question and do not claim to have changed or saved a plan.',
-      maxOutputTokens: 1200,
-      thinkingConfig: { thinkingLevel: 'minimal' },
-      temperature: 0.5
-    }
-  });
+        }]
+      }],
+      config: {
+        systemInstruction: 'You are a helpful event-planning assistant. Keep answers focused on the user’s planning question and do not claim to have changed or saved a plan.',
+        maxOutputTokens: 1200,
+        thinkingConfig: { thinkingLevel: 'minimal' },
+        temperature: 0.5
+      }
+    });
+  } catch (error) {
+    logGeminiFailure('Assistant', error.attempts || [], error);
+    throw error;
+  }
 
-  const answer = response.text?.trim();
+  const answer = result.response.text?.trim();
   if (!answer || answer.length > 4000) {
     throw new Error('Gemini returned an invalid assistant response.');
   }
@@ -170,6 +291,7 @@ export async function generateEventPlan(eventRequest, options = {}) {
   }
 
   let rawPlan = null;
+  let modelUsed = null;
 
   if (forceMock) {
     // -------------------------------------------------------------
@@ -231,17 +353,6 @@ export async function generateEventPlan(eventRequest, options = {}) {
     let geminiDurationMs;
 
     try {
-      const ai = new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY,
-        httpOptions: {
-          retryOptions: {
-            attempts: 2,
-            httpStatusCodes: [503],
-            initialDelay: 0.5,
-            maxDelay: 2
-          }
-        }
-      });
       const systemPrompt = buildSystemInstruction(language);
 
       const userPrompt = buildEventPlanPrompt({
@@ -259,22 +370,27 @@ export async function generateEventPlan(eventRequest, options = {}) {
       });
 
       geminiStartedAt = performance.now();
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+      const result = await generateContentWithFallback({
+        label: 'Plan generation',
+        models: getPlanModels(),
         contents: [
           { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
         ],
         config: {
           responseMimeType: 'application/json',
-          responseSchema: EVENT_PLAN_RESPONSE_SCHEMA
+          responseSchema: EVENT_PLAN_RESPONSE_SCHEMA,
+          // Structured plans do not need deep reasoning; "low" keeps latency
+          // well under the request timeout for large multilingual plans.
+          thinkingConfig: { thinkingLevel: 'low' }
         }
       });
 
       geminiDurationMs = Math.round(performance.now() - geminiStartedAt);
-      const textResponse = response.text;
-      rawPlan = JSON.parse(textResponse);
+      modelUsed = result.model;
+      rawPlan = JSON.parse(result.response.text);
       console.info('[Gemini Timing]', JSON.stringify({
         eventType: diagnosticEventType,
+        modelUsed,
         geminiDurationMs,
         fallbackDurationMs: 0,
         fallbackUsed: false
@@ -283,20 +399,21 @@ export async function generateEventPlan(eventRequest, options = {}) {
       geminiDurationMs ??= geminiStartedAt === undefined
         ? 0
         : Math.round(performance.now() - geminiStartedAt);
-      const safeError = {
-        model: 'gemini-3.8-flash',
-        status: apiError?.status ?? apiError?.response?.status ?? apiError?.code,
-        code: apiError?.error?.code ?? apiError?.code ?? apiError?.status,
-        message: typeof apiError?.message === 'string' ? apiError.message.slice(0, 200) : undefined
-      };
-      console.warn('[Gemini Service] Gemini API call failed:', JSON.stringify(safeError));
-      console.warn('[Gemini Service] Gemini API call failed, falling back to mock mode.');
+      logGeminiFailure('Plan generation', apiError.attempts || [], apiError);
+      console.warn('[Gemini Service] Falling back to the built-in plan library; isMock will be true.');
       const fallbackStartedAt = performance.now();
       try {
-        return await generateEventPlan(eventRequest, { ...options, forceMock: true });
+        const fallback = await generateEventPlan(eventRequest, { ...options, forceMock: true });
+        return {
+          ...fallback,
+          isMock: true,
+          aiModel: null,
+          fallbackReason: apiError.code || 'gemini_unavailable'
+        };
       } finally {
         console.info('[Gemini Timing]', JSON.stringify({
           eventType: diagnosticEventType,
+          modelUsed: null,
           geminiDurationMs,
           fallbackDurationMs: Math.round(performance.now() - fallbackStartedAt),
           fallbackUsed: true
@@ -359,6 +476,8 @@ export async function generateEventPlan(eventRequest, options = {}) {
     success: validation.isValid,
     plan: validation.normalizedPlan,
     isMock: forceMock,
+    aiModel: forceMock ? null : modelUsed,
+    fallbackReason: forceMock ? 'mock_mode' : null,
     warnings: validation.warnings,
     violations: validation.violations,
     errors: validation.errors

@@ -85,7 +85,10 @@ class EventAssistant {
       const result = await response.json();
 
       if (!response.ok || !result.success || typeof result.answer !== 'string') {
-        if (response.status === 429) {
+        if (result.error === 'assistant_quota_exhausted') {
+          throw new Error('assistant_quota_exhausted');
+        }
+        if (response.status === 429 || result.error === 'assistant_rate_limited') {
           throw new Error('assistant_rate_limited');
         }
         throw new Error('assistant_unavailable');
@@ -94,9 +97,14 @@ class EventAssistant {
       this.appendMessage('assistant', result.answer);
       this.status.textContent = '';
     } catch (error) {
-      const message = error.message === 'assistant_rate_limited'
-        ? i18n.t('assistant_rate_limited', 'You’ve asked quite a few questions. Please try again in a little while.')
-        : i18n.t('assistant_unavailable', 'I’m having trouble connecting right now. Please try again soon.');
+      let message;
+      if (error.message === 'assistant_rate_limited') {
+        message = i18n.t('assistant_rate_limited', 'You’ve asked quite a few questions. Please try again in a little while.');
+      } else if (error.message === 'assistant_quota_exhausted') {
+        message = i18n.t('assistant_quota_exhausted', 'The AI assistant has reached today’s free usage limit. Please try again later.');
+      } else {
+        message = i18n.t('assistant_unavailable', 'I’m having trouble connecting right now. Please try again soon.');
+      }
       this.appendMessage('assistant', message);
       this.status.textContent = '';
     } finally {

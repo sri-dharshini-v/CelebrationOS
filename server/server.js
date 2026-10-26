@@ -3,7 +3,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { validateAndNormalizePlan } from './invariants.js';
-import { answerEventPlanningQuestion, generateEventPlan, isGeminiKeyConfigured } from './gemini.js';
+import {
+  answerEventPlanningQuestion,
+  generateEventPlan,
+  isGeminiKeyConfigured,
+  getPlanModels,
+  getAssistantModels
+} from './gemini.js';
 import {
   listPlans,
   getPlan,
@@ -52,6 +58,9 @@ app.get('/api/health', (req, res) => {
     app: 'CelebrationOS',
     version: '1.0.0',
     geminiConfigured: isKeyConfigured,
+    // Model names only: never expose the key or request contents.
+    planModels: getPlanModels(),
+    assistantModels: getAssistantModels(),
     timestamp: new Date().toISOString()
   });
 });
@@ -183,7 +192,19 @@ app.post('/api/assistant/chat', async (req, res) => {
     });
     res.json({ success: true, answer });
   } catch (error) {
-    console.warn('[Assistant] Gemini request failed:', error.message);
+    // Log only classification data; provider payloads can contain quota details.
+    console.warn('[Assistant] Gemini request failed:', JSON.stringify({
+      reason: error.code || 'gemini_unavailable',
+      status: error.attempts?.[0]?.status
+    }));
+
+    if (error.code === 'quota_exhausted') {
+      return res.status(503).json({
+        success: false,
+        error: 'assistant_quota_exhausted'
+      });
+    }
+
     res.status(502).json({
       success: false,
       error: 'assistant_unavailable'
@@ -256,7 +277,7 @@ app.get('/api/plans/:id', (req, res) => {
 
     res.json({ success: true, doc });
   } catch (err) {
-    res.status(500).json({
+    res.status(err.statusCode || 500).json({
       success: false,
       error: err.message
     });
@@ -456,7 +477,7 @@ app.delete('/api/plans/:id', (req, res) => {
       message: 'Plan deleted successfully'
     });
   } catch (err) {
-    res.status(500).json({
+    res.status(err.statusCode || 500).json({
       success: false,
       error: err.message
     });

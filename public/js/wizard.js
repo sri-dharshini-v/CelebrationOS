@@ -405,7 +405,10 @@ export class WizardController {
       }
 
       this.generatedPlan = saveData.doc;
-      this.renderPlanSuccessBanner(saveData.doc);
+      this.renderPlanSuccessBanner(saveData.doc, {
+        isMock: genData.isMock === true,
+        fallbackReason: genData.fallbackReason || null
+      });
 
       // Dispatch event for other modules
       window.dispatchEvent(new CustomEvent('celebrationos:plan_generated', {
@@ -420,7 +423,7 @@ export class WizardController {
     }
   }
 
-  renderPlanSuccessBanner(doc) {
+  renderPlanSuccessBanner(doc, options = {}) {
     const banner = document.getElementById('wizard-plan-summary');
     if (!banner) return;
 
@@ -428,6 +431,11 @@ export class WizardController {
     const catCount = plan.budgetCategories?.length || 0;
     const taskCount = (plan.milestones || []).reduce((acc, m) => acc + (m.tasks?.length || 0), 0);
     const ritualCount = plan.protectedRituals?.length || 0;
+    const mockNotice = options.isMock === true
+      ? `<p class="plan-success-notice" style="margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: var(--text-main); background: rgba(212, 175, 55, 0.12); border: 1px solid var(--accent-gold);">
+            ${escapeHtml(i18n.t('plan_mock_notice', 'AI service is temporarily unavailable, so this is a built-in sample plan. Your budget and plan structure are still valid and saved.'))}
+          </p>`
+      : '';
 
     banner.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
@@ -447,6 +455,7 @@ export class WizardController {
           <span style="font-size: 12px; color: var(--text-dim);">Language: ${escapeHtml(plan.eventDetails.language.toUpperCase())}</span>
         </div>
       </div>
+      ${mockNotice}
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 16px;">
         <div class="plan-success-stat plan-success-budget">
